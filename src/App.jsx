@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Palette, FileText, Image as ImageIcon, Sparkles, Download, Settings, ChevronRight, Key, RefreshCw, Edit } from 'lucide-react';
-
-const generateSessionSecret = () => {
-  return 'session_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-};
+import React, { useState } from 'react';
+import { Palette, FileText, Image as ImageIcon, Sparkles, Download, Settings, ChevronRight, RefreshCw, Edit } from 'lucide-react';
 
 const AIDesignStudio = () => {
-  const [sessionSecret, setSessionSecret] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
   const [selectedType, setSelectedType] = useState(null);
   const [creationMode, setCreationMode] = useState(null);
   const [designPrompt, setDesignPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedDesign, setGeneratedDesign] = useState(null);
   const [editRequest, setEditRequest] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
   
   const [guidedStep, setGuidedStep] = useState(1);
   const [guidedAnswers, setGuidedAnswers] = useState({
@@ -34,12 +26,6 @@ const AIDesignStudio = () => {
     niche: 'tech'
   });
 
-  useEffect(() => {
-    const secret = generateSessionSecret();
-    setSessionSecret(secret);
-    setIsAuthenticated(true);
-  }, []);
-
   const designTypes = [
     { id: 'logo', name: 'Logo', icon: Palette, desc: 'Brand identity designs' },
     { id: 'flyer', name: 'Flyer', icon: FileText, desc: 'Event & promotional materials' },
@@ -49,115 +35,64 @@ const AIDesignStudio = () => {
 
   const creationModes = [
     { id: 'quick', name: 'Quick Mode', desc: 'Describe what you want in one go' },
-    { id: 'guided', name: 'Guided Mode', desc: 'Step-by-step questions to refine your vision' },
-    { id: 'reference', name: 'Reference Mode', desc: 'Upload an image to mimic style' }
+    { id: 'guided', name: 'Guided Mode', desc: 'Step-by-step questions to refine your vision' }
   ];
 
-  const generateDesignWithAI = async (prompt) => {
+  const generateDesign = async (prompt) => {
     setIsGenerating(true);
     
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            { 
-              role: "user", 
-              content: "Create a " + selectedType + " design based on this description: " + prompt + ". Style: " + designOptions.style + " Theme: " + designOptions.theme + " Niche: " + designOptions.niche + " Format: " + designOptions.size + " Provide a detailed visual description of the design including colors, layout, typography, and specific visual elements. Be very specific and creative."
-            }
-          ],
-        })
-      });
-
-      const data = await response.json();
-      const aiDescription = data.content && data.content.find(item => item.type === "text") ? data.content.find(item => item.type === "text").text : "Design generated";
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const description = 'A ' + designOptions.style + ' style ' + selectedType + ' design. ' + prompt + '. The design features ' + designOptions.theme + ' colors with ' + designOptions.font + ' typography. Formatted for ' + designOptions.size + ' in the ' + designOptions.niche + ' industry. The layout is clean and professional with attention-grabbing visual elements that effectively communicate the message.';
       
       setGeneratedDesign({
         type: selectedType,
         prompt: prompt,
-        options: { ...designOptions },
-        description: aiDescription,
-        sessionId: sessionSecret,
+        options: designOptions,
+        description: description,
         timestamp: Date.now()
       });
     } catch (err) {
       console.error('Generation failed:', err);
-      setGeneratedDesign({
-        type: selectedType,
-        prompt: prompt,
-        options: { ...designOptions },
-        description: "A " + designOptions.style + " " + selectedType + " design featuring " + prompt + ". The design uses " + designOptions.theme + " colors with " + designOptions.font + " typography, perfectly sized for " + designOptions.size + ".",
-        sessionId: sessionSecret,
-        timestamp: Date.now()
-      });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleQuickGenerate = () => {
-    if (!designPrompt.trim()) return;
-    generateDesignWithAI(designPrompt);
+    if (designPrompt.trim()) {
+      generateDesign(designPrompt);
+    }
   };
 
   const handleGuidedNext = () => {
     if (guidedStep < 5) {
       setGuidedStep(guidedStep + 1);
     } else {
-      const fullPrompt = "Purpose: " + guidedAnswers.purpose + ". Target audience: " + guidedAnswers.audience + ". Mood: " + guidedAnswers.mood + ". Colors: " + guidedAnswers.colors + ". Text/message: " + guidedAnswers.text;
-      generateDesignWithAI(fullPrompt);
+      const fullPrompt = 'Purpose: ' + guidedAnswers.purpose + '. Target audience: ' + guidedAnswers.audience + '. Mood: ' + guidedAnswers.mood + '. Colors: ' + guidedAnswers.colors + '. Text: ' + guidedAnswers.text;
+      generateDesign(fullPrompt);
     }
   };
 
-  const handleEditDesign = async () => {
-    if (!editRequest.trim()) return;
-    setIsEditing(true);
-    
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            { 
-              role: "user", 
-              content: "Original design: " + generatedDesign.description + " User edit request: " + editRequest + " Update the design based on the edit request. Provide a detailed visual description of the revised design."
-            }
-          ],
-        })
-      });
-
-      const data = await response.json();
-      const aiDescription = data.content && data.content.find(item => item.type === "text") ? data.content.find(item => item.type === "text").text : generatedDesign.description;
-      
+  const handleEditDesign = () => {
+    if (editRequest.trim()) {
+      const updatedDescription = generatedDesign.description + ' UPDATED: ' + editRequest;
       setGeneratedDesign({
         ...generatedDesign,
-        description: aiDescription,
+        description: updatedDescription,
         timestamp: Date.now()
       });
       setEditRequest('');
-    } catch (err) {
-      console.error('Edit failed:', err);
-    } finally {
-      setIsEditing(false);
     }
   };
 
   const handleRegenerate = () => {
-    if (creationMode === 'quick') {
-      handleQuickGenerate();
+    if (creationMode === 'quick' && designPrompt.trim()) {
+      generateDesign(designPrompt);
     } else if (creationMode === 'guided') {
-      const fullPrompt = "Purpose: " + guidedAnswers.purpose + ". Target audience: " + guidedAnswers.audience + ". Mood: " + guidedAnswers.mood + ". Colors: " + guidedAnswers.colors + ". Text/message: " + guidedAnswers.text;
-      generateDesignWithAI(fullPrompt);
+      const fullPrompt = 'Purpose: ' + guidedAnswers.purpose + '. Target audience: ' + guidedAnswers.audience + '. Mood: ' + guidedAnswers.mood + '. Colors: ' + guidedAnswers.colors + '. Text: ' + guidedAnswers.text;
+      generateDesign(fullPrompt);
     }
   };
 
@@ -180,13 +115,11 @@ const AIDesignStudio = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900">AI Design Studio</h1>
           </div>
-          <div className="flex items-center gap-4">
-            {selectedType && (
-              <button onClick={resetToStart} className="px-4 py-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
-                New Design
-              </button>
-            )}
-          </div>
+          {selectedType && (
+            <button onClick={resetToStart} className="px-4 py-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
+              New Design
+            </button>
+          )}
         </div>
       </header>
 
@@ -201,7 +134,7 @@ const AIDesignStudio = () => {
                   <button
                     key={type.id}
                     onClick={() => setSelectedType(type.id)}
-                    className="bg-white p-6 rounded-xl border-2 border-gray-200 hover:border-purple-500 transition-all group"
+                    className="bg-white p-6 rounded-xl border-2 border-gray-200 hover:border-purple-500 transition-all"
                   >
                     <Icon className="w-12 h-12 text-purple-600 mb-3" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">{type.name}</h3>
@@ -219,7 +152,7 @@ const AIDesignStudio = () => {
               ← Back
             </button>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">How would you like to create your {selectedType}?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {creationModes.map((mode) => (
                 <button
                   key={mode.id}
@@ -266,7 +199,10 @@ const AIDesignStudio = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-4">
                       {[1, 2, 3, 4, 5].map(step => (
-                        <div key={step} className={'h-2 flex-1 rounded ' + (step <= guidedStep ? 'bg-purple-600' : 'bg-gray-200')}></div>
+                        <div 
+                          key={step} 
+                          className={step <= guidedStep ? 'h-2 flex-1 rounded bg-purple-600' : 'h-2 flex-1 rounded bg-gray-200'}
+                        ></div>
                       ))}
                     </div>
 
@@ -413,19 +349,19 @@ const AIDesignStudio = () => {
                     <Sparkles className="w-5 h-5" />
                     {isGenerating ? 'Generating...' : 'Generate Design'}
                   </button>
-                ) : creationMode === 'guided' ? (
+                ) : (
                   <button
                     onClick={handleGuidedNext}
                     disabled={isGenerating}
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {guidedStep < 5 ? (
-                      <React.Fragment>Next <ChevronRight className="w-5 h-5" /></React.Fragment>
+                      <span className="flex items-center gap-2">Next <ChevronRight className="w-5 h-5" /></span>
                     ) : (
-                      <React.Fragment><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating...' : 'Generate Design'}</React.Fragment>
+                      <span className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating...' : 'Generate Design'}</span>
                     )}
                   </button>
-                ) : null}
+                )}
               </div>
             </div>
 
@@ -462,10 +398,8 @@ const AIDesignStudio = () => {
                   <div className="space-y-4">
                     <div className="border-2 border-gray-300 rounded-lg p-8 bg-gradient-to-br from-purple-50 to-blue-50">
                       <div className="bg-white rounded-lg p-8 shadow-lg">
-                        <div className="prose max-w-none">
-                          <h3 className="text-xl font-bold text-gray-900 mb-4">AI-Generated Design Description:</h3>
-                          <p className="text-gray-700 whitespace-pre-wrap">{generatedDesign.description}</p>
-                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-4">AI-Generated Design</h3>
+                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{generatedDesign.description}</p>
                       </div>
                     </div>
 
@@ -481,14 +415,13 @@ const AIDesignStudio = () => {
                           onChange={(e) => setEditRequest(e.target.value)}
                           placeholder="e.g., Make the colors brighter, add more elements..."
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          onKeyPress={(e) => e.key === 'Enter' && handleEditDesign()}
                         />
                         <button
                           onClick={handleEditDesign}
-                          disabled={isEditing || !editRequest.trim()}
+                          disabled={!editRequest.trim()}
                           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium"
                         >
-                          {isEditing ? 'Updating...' : 'Update'}
+                          Update
                         </button>
                       </div>
                     </div>
