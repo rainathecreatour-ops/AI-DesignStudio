@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
-import { Palette, FileText, Image as ImageIcon, Sparkles, Download, Settings, ChevronRight, RefreshCw, Edit } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Palette, FileText, Image as ImageIcon, Sparkles, Download, Settings, ChevronRight, RefreshCw, Edit, Key } from 'lucide-react';
+
+const generateSessionSecret = () => {
+  return 'session_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
 
 const AIDesignStudio = () => {
+  const [sessionSecret, setSessionSecret] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [licenseKey, setLicenseKey] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState('');
+  
   const [selectedType, setSelectedType] = useState(null);
   const [creationMode, setCreationMode] = useState(null);
   const [designPrompt, setDesignPrompt] = useState('');
@@ -26,6 +36,30 @@ const AIDesignStudio = () => {
     niche: 'tech'
   });
 
+  useEffect(() => {
+    const secret = generateSessionSecret();
+    setSessionSecret(secret);
+  }, []);
+
+  const validateLicense = async () => {
+    setIsValidating(true);
+    setError('');
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (licenseKey.length > 5) {
+        setIsAuthenticated(true);
+      } else {
+        setError('Invalid license key. Please check and try again.');
+      }
+    } catch (err) {
+      setError('Failed to validate license. Please try again.');
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   const designTypes = [
     { id: 'logo', name: 'Logo', icon: Palette, desc: 'Brand identity designs' },
     { id: 'flyer', name: 'Flyer', icon: FileText, desc: 'Event & promotional materials' },
@@ -40,21 +74,94 @@ const AIDesignStudio = () => {
 
   const generateDesign = async (prompt) => {
     setIsGenerating(true);
+    setError('');
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Build comprehensive image generation prompt
+      const sizeSpecs = {
+        'instagram-post': '1080x1080 square format',
+        'youtube-thumb': '1280x720 widescreen format',
+        'a4-flyer': 'portrait A4 format',
+        'logo-square': '500x500 square format'
+      };
+
+      const fullPrompt = `Create a professional ${selectedType} design with the following specifications:
+
+${prompt}
+
+Style: ${designOptions.style}
+Theme: ${designOptions.theme} colors
+Typography: ${designOptions.font} font style
+Format: ${sizeSpecs[designOptions.size]}
+Industry: ${designOptions.niche}
+
+The design should be:
+- Professional and polished
+- High-quality and print-ready
+- Visually striking and attention-grabbing
+- Appropriate for ${selectedType} use
+- Clean layout with good composition
+
+Generate a complete, finished design ready for use.`;
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: fullPrompt
+            }
+          ],
+          tools: [
+            {
+              type: "image_generation_20250110",
+              name: "image_generation"
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      const description = 'A ' + designOptions.style + ' style ' + selectedType + ' design. ' + prompt + '. The design features ' + designOptions.theme + ' colors with ' + designOptions.font + ' typography. Formatted for ' + designOptions.size + ' in the ' + designOptions.niche + ' industry. The layout is clean and professional with attention-grabbing visual elements that effectively communicate the message.';
+      // Extract generated image from response
+      let imageUrl = null;
+      let description = '';
+      
+      for (const block of data.content) {
+        if (block.type === 'image') {
+          // Image is returned as base64
+          imageUrl = `data:${block.source.media_type};base64,${block.source.data}`;
+        } else if (block.type === 'text') {
+          description += block.text;
+        }
+      }
+      
+      if (!imageUrl) {
+        throw new Error('No image generated. Please try again.');
+      }
       
       setGeneratedDesign({
         type: selectedType,
         prompt: prompt,
         options: designOptions,
+        imageUrl: imageUrl,
         description: description,
         timestamp: Date.now()
       });
+      
     } catch (err) {
       console.error('Generation failed:', err);
+      setError('Failed to generate image. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -70,19 +177,22 @@ const AIDesignStudio = () => {
     if (guidedStep < 5) {
       setGuidedStep(guidedStep + 1);
     } else {
-      const fullPrompt = 'Purpose: ' + guidedAnswers.purpose + '. Target audience: ' + guidedAnswers.audience + '. Mood: ' + guidedAnswers.mood + '. Colors: ' + guidedAnswers.colors + '. Text: ' + guidedAnswers.text;
+      const fullPrompt = `Purpose: ${guidedAnswers.purpose}. Target audience: ${guidedAnswers.audience}. Mood: ${guidedAnswers.mood}. Colors: ${guidedAnswers.colors}. Text to include: ${guidedAnswers.text}`;
       generateDesign(fullPrompt);
     }
   };
 
-  const handleEditDesign = () => {
-    if (editRequest.trim()) {
-      const updatedDescription = generatedDesign.description + ' UPDATED: ' + editRequest;
-      setGeneratedDesign({
-        ...generatedDesign,
-        description: updatedDescription,
-        timestamp: Date.now()
-      });
+  const handleEditDesign = async () => {
+    if (editRequest.trim() && generatedDesign) {
+      setIsGenerating(true);
+      
+      const editPrompt = `Take this existing ${selectedType} design and modify it: ${editRequest}
+
+Original prompt: ${generatedDesign.prompt}
+
+Keep the same general style but incorporate the requested changes.`;
+      
+      await generateDesign(editPrompt);
       setEditRequest('');
     }
   };
@@ -91,8 +201,19 @@ const AIDesignStudio = () => {
     if (creationMode === 'quick' && designPrompt.trim()) {
       generateDesign(designPrompt);
     } else if (creationMode === 'guided') {
-      const fullPrompt = 'Purpose: ' + guidedAnswers.purpose + '. Target audience: ' + guidedAnswers.audience + '. Mood: ' + guidedAnswers.mood + '. Colors: ' + guidedAnswers.colors + '. Text: ' + guidedAnswers.text;
+      const fullPrompt = `Purpose: ${guidedAnswers.purpose}. Target audience: ${guidedAnswers.audience}. Mood: ${guidedAnswers.mood}. Colors: ${guidedAnswers.colors}. Text: ${guidedAnswers.text}`;
       generateDesign(fullPrompt);
+    }
+  };
+
+  const handleDownload = () => {
+    if (generatedDesign && generatedDesign.imageUrl) {
+      const link = document.createElement('a');
+      link.href = generatedDesign.imageUrl;
+      link.download = `design-${selectedType}-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -103,7 +224,76 @@ const AIDesignStudio = () => {
     setDesignPrompt('');
     setGuidedStep(1);
     setGuidedAnswers({ purpose: '', audience: '', mood: '', colors: '', text: '' });
+    setError('');
   };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setLicenseKey('');
+    setSelectedType(null);
+    setCreationMode(null);
+    setGeneratedDesign(null);
+    setSessionSecret(generateSessionSecret());
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full mb-4">
+              <Key className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Design Studio</h1>
+            <p className="text-gray-600">Enter your license key to access the design tools</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                License Key
+              </label>
+              <input
+                type="text"
+                value={licenseKey}
+                onChange={(e) => setLicenseKey(e.target.value)}
+                placeholder="Enter your license key"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                onKeyPress={(e) => e.key === 'Enter' && validateLicense()}
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={validateLicense}
+              disabled={isValidating || !licenseKey}
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isValidating ? 'Validating...' : 'Activate License'}
+            </button>
+
+            <div className="text-center pt-4">
+              <p className="text-sm text-gray-600">
+                Don't have a license? <a href="https://gumroad.com/l/your-product" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Purchase on Gumroad</a>
+              </p>
+            </div>
+
+            {sessionSecret && (
+              <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Session ID:</p>
+                <p className="text-xs font-mono text-gray-700 break-all">{sessionSecret}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,11 +305,16 @@ const AIDesignStudio = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900">AI Design Studio</h1>
           </div>
-          {selectedType && (
-            <button onClick={resetToStart} className="px-4 py-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
-              New Design
+          <div className="flex items-center gap-4">
+            {selectedType && (
+              <button onClick={resetToStart} className="px-4 py-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
+                New Design
+              </button>
+            )}
+            <button onClick={handleLogout} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
+              Logout
             </button>
-          )}
+          </div>
         </div>
       </header>
 
@@ -174,6 +369,12 @@ const AIDesignStudio = () => {
               <button onClick={() => setCreationMode(null)} className="text-purple-600 hover:text-purple-700 flex items-center gap-1">
                 ← Back
               </button>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
 
               <div className="bg-white rounded-xl p-6 space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -347,7 +548,7 @@ const AIDesignStudio = () => {
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-5 h-5" />
-                    {isGenerating ? 'Generating...' : 'Generate Design'}
+                    {isGenerating ? 'Generating Image...' : 'Generate Design'}
                   </button>
                 ) : (
                   <button
@@ -358,7 +559,7 @@ const AIDesignStudio = () => {
                     {guidedStep < 5 ? (
                       <span className="flex items-center gap-2">Next <ChevronRight className="w-5 h-5" /></span>
                     ) : (
-                      <span className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating...' : 'Generate Design'}</span>
+                      <span className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating Image...' : 'Generate Design'}</span>
                     )}
                   </button>
                 )}
@@ -379,9 +580,12 @@ const AIDesignStudio = () => {
                         <RefreshCw className="w-4 h-4" />
                         Regenerate
                       </button>
-                      <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                      <button 
+                        onClick={handleDownload}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                      >
                         <Download className="w-4 h-4" />
-                        Export
+                        Download
                       </button>
                     </div>
                   )}
@@ -391,17 +595,26 @@ const AIDesignStudio = () => {
                   <div className="flex items-center justify-center h-96 border-2 border-dashed border-gray-300 rounded-lg">
                     <div className="text-center">
                       <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">Configure your design and click generate</p>
+                      <p className="text-gray-600">
+                        {isGenerating ? 'Generating your design...' : 'Configure your design and click generate'}
+                      </p>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="border-2 border-gray-300 rounded-lg p-8 bg-gradient-to-br from-purple-50 to-blue-50">
-                      <div className="bg-white rounded-lg p-8 shadow-lg">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4">AI-Generated Design</h3>
-                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{generatedDesign.description}</p>
-                      </div>
+                    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                      <img 
+                        src={generatedDesign.imageUrl} 
+                        alt="Generated design" 
+                        className="w-full h-auto"
+                      />
                     </div>
+
+                    {generatedDesign.description && (
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-700">{generatedDesign.description}</p>
+                      </div>
+                    )}
 
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -415,13 +628,14 @@ const AIDesignStudio = () => {
                           onChange={(e) => setEditRequest(e.target.value)}
                           placeholder="e.g., Make the colors brighter, add more elements..."
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          onKeyPress={(e) => e.key === 'Enter' && handleEditDesign()}
                         />
                         <button
                           onClick={handleEditDesign}
-                          disabled={!editRequest.trim()}
+                          disabled={!editRequest.trim() || isGenerating}
                           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium"
                         >
-                          Update
+                          {isGenerating ? 'Updating...' : 'Update'}
                         </button>
                       </div>
                     </div>
