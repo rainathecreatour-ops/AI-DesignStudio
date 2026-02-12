@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Palette, FileText, Image as ImageIcon, Sparkles, Download, Settings, ChevronRight, Key } from 'lucide-react';
 
+// Generate a random session secret for this browser session
+const generateSessionSecret = () => {
+  return 'session_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+
 const AIDesignStudio = () => {
+  const [sessionSecret, setSessionSecret] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
   const [isValidating, setIsValidating] = useState(false);
@@ -21,18 +27,29 @@ const AIDesignStudio = () => {
     niche: 'tech'
   });
 
+  // Initialize session secret on component mount
+  useEffect(() => {
+    const secret = generateSessionSecret();
+    setSessionSecret(secret);
+    console.log('Session Secret:', secret); // For debugging - remove in production
+  }, []);
+
   const validateLicense = async () => {
     setIsValidating(true);
     setError('');
     
     try {
-      // Simulate Gumroad API validation
-      // In production, replace with actual Gumroad API call
+      // Simulate Gumroad API validation with session secret
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // In production, send both licenseKey and sessionSecret to your backend
+      const response = await validateLicenseWithGumroad(licenseKey, sessionSecret);
       
       // Demo: Accept any key that starts with "DEMO-"
       if (licenseKey.startsWith('DEMO-') || licenseKey.length > 10) {
         setIsAuthenticated(true);
+        // Store session in memory (no localStorage)
+        console.log('License validated with session:', sessionSecret);
       } else {
         setError('Invalid license key. Please check and try again.');
       }
@@ -41,6 +58,22 @@ const AIDesignStudio = () => {
     } finally {
       setIsValidating(false);
     }
+  };
+
+  // This function would call your backend API in production
+  const validateLicenseWithGumroad = async (license, session) => {
+    // Example API call structure:
+    // const response = await fetch('/api/validate-license', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ 
+    //     license_key: license,
+    //     session_secret: session 
+    //   })
+    // });
+    // return response.json();
+    
+    return { valid: true }; // Demo response
   };
 
   const designTypes = [
@@ -60,6 +93,9 @@ const AIDesignStudio = () => {
     setIsGenerating(true);
     
     try {
+      // Include session secret in API calls for security
+      console.log('Generating design with session:', sessionSecret);
+      
       // Simulate AI generation
       await new Promise(resolve => setTimeout(resolve, 2000));
       
@@ -67,13 +103,24 @@ const AIDesignStudio = () => {
         type: selectedType,
         prompt: designPrompt,
         options: designOptions,
-        preview: true
+        preview: true,
+        sessionId: sessionSecret
       });
     } catch (err) {
       console.error('Generation failed:', err);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setLicenseKey('');
+    setSelectedType(null);
+    setCreationMode(null);
+    setGeneratedDesign(null);
+    // Generate new session secret on logout
+    setSessionSecret(generateSessionSecret());
   };
 
   // License Gate Screen
@@ -134,6 +181,14 @@ const AIDesignStudio = () => {
                 </a>
               </p>
             </div>
+
+            {/* Display session secret (remove in production) */}
+            {sessionSecret && (
+              <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Session ID (for debugging):</p>
+                <p className="text-xs font-mono text-gray-700 break-all">{sessionSecret}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -152,9 +207,15 @@ const AIDesignStudio = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900">AI Design Studio</h1>
           </div>
-          <button className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-gray-500 font-mono">{sessionSecret?.substring(0, 12)}...</span>
+            <button 
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
