@@ -8,9 +8,6 @@ const generateSessionSecret = () => {
 const AIDesignStudio = () => {
   const [sessionSecret, setSessionSecret] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [licenseKey, setLicenseKey] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
-  const [error, setError] = useState('');
   
   const [selectedType, setSelectedType] = useState(null);
   const [creationMode, setCreationMode] = useState(null);
@@ -20,7 +17,6 @@ const AIDesignStudio = () => {
   const [editRequest, setEditRequest] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   
-  // Guided mode state
   const [guidedStep, setGuidedStep] = useState(1);
   const [guidedAnswers, setGuidedAnswers] = useState({
     purpose: '',
@@ -41,7 +37,7 @@ const AIDesignStudio = () => {
   useEffect(() => {
     const secret = generateSessionSecret();
     setSessionSecret(secret);
-    setIsAuthenticated(true); // Auto-authenticate (no demo mode needed)
+    setIsAuthenticated(true);
   }, []);
 
   const designTypes = [
@@ -72,20 +68,14 @@ const AIDesignStudio = () => {
           messages: [
             { 
               role: "user", 
-              content: `Create a ${selectedType} design based on this description: ${prompt}. 
-              Style: ${designOptions.style}
-              Theme: ${designOptions.theme}
-              Niche: ${designOptions.niche}
-              Format: ${designOptions.size}
-              
-              Provide a detailed visual description of the design including colors, layout, typography, and specific visual elements. Be very specific and creative.` 
+              content: "Create a " + selectedType + " design based on this description: " + prompt + ". Style: " + designOptions.style + " Theme: " + designOptions.theme + " Niche: " + designOptions.niche + " Format: " + designOptions.size + " Provide a detailed visual description of the design including colors, layout, typography, and specific visual elements. Be very specific and creative."
             }
           ],
         })
       });
 
       const data = await response.json();
-      const aiDescription = data.content.find(item => item.type === "text")?.text || "Design generated";
+      const aiDescription = data.content && data.content.find(item => item.type === "text") ? data.content.find(item => item.type === "text").text : "Design generated";
       
       setGeneratedDesign({
         type: selectedType,
@@ -101,7 +91,7 @@ const AIDesignStudio = () => {
         type: selectedType,
         prompt: prompt,
         options: { ...designOptions },
-        description: `A ${designOptions.style} ${selectedType} design featuring ${prompt}. The design uses ${designOptions.theme} colors with ${designOptions.font} typography, perfectly sized for ${designOptions.size}.`,
+        description: "A " + designOptions.style + " " + selectedType + " design featuring " + prompt + ". The design uses " + designOptions.theme + " colors with " + designOptions.font + " typography, perfectly sized for " + designOptions.size + ".",
         sessionId: sessionSecret,
         timestamp: Date.now()
       });
@@ -119,7 +109,7 @@ const AIDesignStudio = () => {
     if (guidedStep < 5) {
       setGuidedStep(guidedStep + 1);
     } else {
-      const fullPrompt = `Purpose: ${guidedAnswers.purpose}. Target audience: ${guidedAnswers.audience}. Mood: ${guidedAnswers.mood}. Colors: ${guidedAnswers.colors}. Text/message: ${guidedAnswers.text}`;
+      const fullPrompt = "Purpose: " + guidedAnswers.purpose + ". Target audience: " + guidedAnswers.audience + ". Mood: " + guidedAnswers.mood + ". Colors: " + guidedAnswers.colors + ". Text/message: " + guidedAnswers.text;
       generateDesignWithAI(fullPrompt);
     }
   };
@@ -140,18 +130,14 @@ const AIDesignStudio = () => {
           messages: [
             { 
               role: "user", 
-              content: `Original design: ${generatedDesign.description}
-              
-              User edit request: ${editRequest}
-              
-              Update the design based on the edit request. Provide a detailed visual description of the revised design.` 
+              content: "Original design: " + generatedDesign.description + " User edit request: " + editRequest + " Update the design based on the edit request. Provide a detailed visual description of the revised design."
             }
           ],
         })
       });
 
       const data = await response.json();
-      const aiDescription = data.content.find(item => item.type === "text")?.text || generatedDesign.description;
+      const aiDescription = data.content && data.content.find(item => item.type === "text") ? data.content.find(item => item.type === "text").text : generatedDesign.description;
       
       setGeneratedDesign({
         ...generatedDesign,
@@ -170,18 +156,9 @@ const AIDesignStudio = () => {
     if (creationMode === 'quick') {
       handleQuickGenerate();
     } else if (creationMode === 'guided') {
-      const fullPrompt = `Purpose: ${guidedAnswers.purpose}. Target audience: ${guidedAnswers.audience}. Mood: ${guidedAnswers.mood}. Colors: ${guidedAnswers.colors}. Text/message: ${guidedAnswers.text}`;
+      const fullPrompt = "Purpose: " + guidedAnswers.purpose + ". Target audience: " + guidedAnswers.audience + ". Mood: " + guidedAnswers.mood + ". Colors: " + guidedAnswers.colors + ". Text/message: " + guidedAnswers.text;
       generateDesignWithAI(fullPrompt);
     }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setLicenseKey('');
-    setSelectedType(null);
-    setCreationMode(null);
-    setGeneratedDesign(null);
-    setSessionSecret(generateSessionSecret());
   };
 
   const resetToStart = () => {
@@ -289,14 +266,14 @@ const AIDesignStudio = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-4">
                       {[1, 2, 3, 4, 5].map(step => (
-                        <div key={step} className={`h-2 flex-1 rounded ${step <= guidedStep ? 'bg-purple-600' : 'bg-gray-200'}`}></div>
+                        <div key={step} className={'h-2 flex-1 rounded ' + (step <= guidedStep ? 'bg-purple-600' : 'bg-gray-200')}></div>
                       ))}
                     </div>
 
                     {guidedStep === 1 && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          What's the purpose of this design?
+                          What is the purpose of this design?
                         </label>
                         <input
                           type="text"
@@ -443,9 +420,9 @@ const AIDesignStudio = () => {
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {guidedStep < 5 ? (
-                      <>Next <ChevronRight className="w-5 h-5" /></>
+                      <React.Fragment>Next <ChevronRight className="w-5 h-5" /></React.Fragment>
                     ) : (
-                      <><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating...' : 'Generate Design'}</>
+                      <React.Fragment><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating...' : 'Generate Design'}</React.Fragment>
                     )}
                   </button>
                 ) : null}
