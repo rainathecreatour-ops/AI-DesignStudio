@@ -72,21 +72,21 @@ const AIDesignStudio = () => {
     { id: 'guided', name: 'Guided Mode', desc: 'Step-by-step questions to refine your vision' }
   ];
 
-  const generateDesign = async (prompt) => {
-    setIsGenerating(true);
-    setError('');
-    
-    try {
-      // Build comprehensive image generation prompt
-      const sizeSpecs = {
-        'instagram-post': '1080x1080 square format',
-        'youtube-thumb': '1280x720 widescreen format',
-        'a4-flyer': 'portrait A4 format',
-        'logo-square': '500x500 square format'
-      };
+ const generateDesign = async (prompt) => {
+  setIsGenerating(true);
+  setError('');
+  
+  try {
+    const sizeSpecs = {
+      'instagram-post': 'square 1:1 aspect ratio',
+      'youtube-thumb': 'widescreen 16:9 aspect ratio',
+      'a4-flyer': 'portrait aspect ratio',
+      'logo-square': 'square format'
+    };
 
-      const fullPrompt = `Create a professional ${selectedType} design with the following specifications:
+    const fullPrompt = `Generate an image for a ${selectedType} design.
 
+Requirements:
 ${prompt}
 
 Style: ${designOptions.style}
@@ -95,77 +95,71 @@ Typography: ${designOptions.font} font style
 Format: ${sizeSpecs[designOptions.size]}
 Industry: ${designOptions.niche}
 
-The design should be:
-- Professional and polished
-- High-quality and print-ready
-- Visually striking and attention-grabbing
-- Appropriate for ${selectedType} use
-- Clean layout with good composition
+Create a professional, polished ${selectedType} design that is visually striking and ready to use.`;
 
-Generate a complete, finished design ready for use.`;
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [
+          {
+            role: "user",
+            content: fullPrompt
+          }
+        ],
+        tools: [
+          {
+            type: "image_generation_20250110",
+            name: "image_generation"
+          }
+        ]
+      })
+    });
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            {
-              role: "user",
-              content: fullPrompt
-            }
-          ],
-          tools: [
-            {
-              type: "image_generation_20250110",
-              name: "image_generation"
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      // Extract generated image from response
-      let imageUrl = null;
-      let description = '';
-      
-      for (const block of data.content) {
-        if (block.type === 'image') {
-          // Image is returned as base64
-          imageUrl = `data:${block.source.media_type};base64,${block.source.data}`;
-        } else if (block.type === 'text') {
-          description += block.text;
-        }
-      }
-      
-      if (!imageUrl) {
-        throw new Error('No image generated. Please try again.');
-      }
-      
-      setGeneratedDesign({
-        type: selectedType,
-        prompt: prompt,
-        options: designOptions,
-        imageUrl: imageUrl,
-        description: description,
-        timestamp: Date.now()
-      });
-      
-    } catch (err) {
-      console.error('Generation failed:', err);
-      setError('Failed to generate image. Please try again.');
-    } finally {
-      setIsGenerating(false);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API error: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+    console.log('API Response:', data);
+    
+    // Extract generated image from response
+    let imageUrl = null;
+    let description = '';
+    
+    for (const block of data.content) {
+      if (block.type === 'image') {
+        imageUrl = `data:${block.source.media_type};base64,${block.source.data}`;
+      } else if (block.type === 'text') {
+        description += block.text;
+      }
+    }
+    
+    if (!imageUrl) {
+      throw new Error('No image was generated in the response. The AI may need a more specific prompt.');
+    }
+    
+    setGeneratedDesign({
+      type: selectedType,
+      prompt: prompt,
+      options: designOptions,
+      imageUrl: imageUrl,
+      description: description,
+      timestamp: Date.now()
+    });
+    
+  } catch (err) {
+    console.error('Generation failed:', err);
+    setError(err.message || 'Failed to generate image. Please try again with a different prompt.');
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const handleQuickGenerate = () => {
     if (designPrompt.trim()) {
