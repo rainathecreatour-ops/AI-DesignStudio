@@ -72,142 +72,17 @@ const AIDesignStudio = () => {
     { id: 'guided', name: 'Guided Mode', desc: 'Step-by-step questions to refine your vision' }
   ];
 
-  const createGradientBackground = (ctx, width, height, theme, style) => {
-    if (theme === 'vibrant') {
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#1e3a8a');
-      gradient.addColorStop(0.5, '#312e81');
-      gradient.addColorStop(1, '#1e1b4b');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-      
-      // Add stars
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      for (let i = 0; i < 100; i++) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        const size = Math.random() * 2;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else if (theme === 'pastel') {
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#fce7f3');
-      gradient.addColorStop(0.5, '#e0e7ff');
-      gradient.addColorStop(1, '#dbeafe');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-    } else if (theme === 'dark') {
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#0f172a');
-      gradient.addColorStop(1, '#1e293b');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-    } else {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
-    }
-  };
-
-  const drawGlossyButton = (ctx, x, y, width, height, text, color1, color2) => {
-    // Button shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetY = 5;
-    
-    // Button background gradient
-    const gradient = ctx.createLinearGradient(x, y, x, y + height);
-    gradient.addColorStop(0, color1);
-    gradient.addColorStop(1, color2);
-    ctx.fillStyle = gradient;
-    
-    // Rounded rectangle
-    ctx.beginPath();
-    const radius = height / 2;
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Border
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    
-    ctx.shadowColor = 'transparent';
-    
-    // Button text
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${height * 0.35}px Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x + width / 2, y + height / 2);
-  };
-
-  const drawIcon = (ctx, x, y, size, type) => {
-    ctx.save();
-    
-    if (type === 'star') {
-      ctx.fillStyle = '#fbbf24';
-      ctx.shadowColor = '#fbbf24';
-      ctx.shadowBlur = 20;
-      
-      const spikes = 4;
-      const outerRadius = size;
-      const innerRadius = size * 0.5;
-      
-      ctx.beginPath();
-      for (let i = 0; i < spikes * 2; i++) {
-        const radius = i % 2 === 0 ? outerRadius : innerRadius;
-        const angle = (i * Math.PI) / spikes;
-        const px = x + Math.cos(angle) * radius;
-        const py = y + Math.sin(angle) * radius;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.fill();
-    } else if (type === 'sparkle') {
-      ctx.fillStyle = '#60a5fa';
-      ctx.shadowColor = '#60a5fa';
-      ctx.shadowBlur = 15;
-      
-      ctx.beginPath();
-      ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Cross sparkle
-      ctx.strokeStyle = '#60a5fa';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(x - size, y);
-      ctx.lineTo(x + size, y);
-      ctx.moveTo(x, y - size);
-      ctx.lineTo(x, y + size);
-      ctx.stroke();
-    }
-    
-    ctx.restore();
-  };
-
   const generateDesign = async (prompt) => {
     setIsGenerating(true);
     setError('');
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
+      // Set dimensions
       const dimensions = {
         'instagram-post': [1080, 1080],
         'youtube-thumb': [1920, 1080],
@@ -219,142 +94,119 @@ const AIDesignStudio = () => {
       canvas.width = width;
       canvas.height = height;
       
-      // Background
-      createGradientBackground(ctx, width, height, designOptions.theme, designOptions.style);
-      
-      // Add decorative elements
-      for (let i = 0; i < 8; i++) {
-        drawIcon(ctx, Math.random() * width, Math.random() * height, 15 + Math.random() * 20, 'star');
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      if (designOptions.theme === 'vibrant') {
+        gradient.addColorStop(0, '#1e3a8a');
+        gradient.addColorStop(0.5, '#312e81');
+        gradient.addColorStop(1, '#1e1b4b');
+      } else if (designOptions.theme === 'pastel') {
+        gradient.addColorStop(0, '#fce7f3');
+        gradient.addColorStop(1, '#dbeafe');
+      } else if (designOptions.theme === 'dark') {
+        gradient.addColorStop(0, '#0f172a');
+        gradient.addColorStop(1, '#1e293b');
+      } else {
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(1, '#f3f4f6');
       }
-      for (let i = 0; i < 12; i++) {
-        drawIcon(ctx, Math.random() * width, Math.random() * height, 10 + Math.random() * 15, 'sparkle');
-      }
       
-      if (selectedType === 'logo') {
-        // Logo design
-        const centerX = width / 2;
-        const centerY = height / 2;
-        
-        // Main logo shape with gradient
-        const logoGradient = ctx.createLinearGradient(centerX - 200, centerY - 200, centerX + 200, centerY + 200);
-        logoGradient.addColorStop(0, '#3b82f6');
-        logoGradient.addColorStop(0.5, '#8b5cf6');
-        logoGradient.addColorStop(1, '#ec4899');
-        
-        ctx.fillStyle = logoGradient;
-        ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
-        ctx.shadowBlur = 40;
-        
-        // Draw shield/badge shape
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY - 150);
-        ctx.lineTo(centerX + 120, centerY - 80);
-        ctx.lineTo(centerX + 120, centerY + 80);
-        ctx.lineTo(centerX, centerY + 150);
-        ctx.lineTo(centerX - 120, centerY + 80);
-        ctx.lineTo(centerX - 120, centerY - 80);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.shadowColor = 'transparent';
-        
-        // Inner design element
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 8;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Brand name
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Add stars for vibrant theme
+      if (designOptions.theme === 'vibrant') {
         ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${width * 0.08}px Arial, sans-serif`;
+        for (let i = 0; i < 50; i++) {
+          const x = Math.random() * width;
+          const y = Math.random() * height;
+          const size = Math.random() * 2;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Design type specific rendering
+      if (selectedType === 'logo') {
+        // Logo circle
+        ctx.fillStyle = '#3b82f6';
+        ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
+        ctx.shadowBlur = 30;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 100, 150, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 80px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(prompt.slice(0, 15).toUpperCase() || 'LOGO', centerX, centerY + 150);
+        
+      } else if (selectedType === 'flyer') {
+        // Title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 90px Arial';
         ctx.textAlign = 'center';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 10;
-        
-        const words = prompt.split(' ').slice(0, 2);
-        ctx.fillText(words.join(' ').toUpperCase() || 'YOUR BRAND', centerX, centerY + height * 0.35);
-        
-      } else if (selectedType === 'flyer' || selectedType === 'social') {
-        // Flyer/Social Post design
-        const centerX = width / 2;
-        
-        // Main title area with glow effect
-        ctx.shadowColor = 'rgba(139, 92, 246, 0.8)';
-        ctx.shadowBlur = 30;
-        
-        // Title
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${width * 0.08}px Arial, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        
-        const titleWords = prompt.split(' ').slice(0, 3);
-        const title = titleWords.join(' ').toUpperCase() || 'YOUR TITLE';
-        ctx.fillText(title, centerX, height * 0.15);
-        
-        ctx.shadowColor = 'transparent';
+        ctx.fillText(prompt.slice(0, 20).toUpperCase() || 'TITLE', centerX, height * 0.2);
+        ctx.shadowBlur = 0;
         
         // Subtitle
         ctx.fillStyle = '#fbbf24';
-        ctx.font = `bold ${width * 0.05}px Arial, sans-serif`;
-        ctx.fillText('Professional Design', centerX, height * 0.28);
+        ctx.font = 'bold 50px Arial';
+        ctx.fillText('Professional Design', centerX, height * 0.3);
         
         // Feature boxes
-        const boxWidth = width * 0.4;
-        const boxHeight = height * 0.15;
-        const startY = height * 0.45;
+        const boxY = height * 0.5;
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(width * 0.1, boxY, width * 0.35, 120);
+        ctx.fillRect(width * 0.55, boxY, width * 0.35, 120);
         
-        // Left box
-        drawGlossyButton(ctx, width * 0.1, startY, boxWidth, boxHeight, 'FEATURE 1', '#3b82f6', '#1e40af');
-        
-        // Right box
-        drawGlossyButton(ctx, width * 0.5, startY, boxWidth, boxHeight, 'FEATURE 2', '#ec4899', '#be185d');
-        
-        // Bottom box
-        drawGlossyButton(ctx, width * 0.1, startY + boxHeight * 1.3, boxWidth, boxHeight, 'FEATURE 3', '#8b5cf6', '#6d28d9');
-        
-        // Last box
-        drawGlossyButton(ctx, width * 0.5, startY + boxHeight * 1.3, boxWidth, boxHeight, 'FEATURE 4', '#10b981', '#047857');
-        
-        // Bottom text
         ctx.fillStyle = '#ffffff';
-        ctx.font = `${width * 0.035}px Arial, sans-serif`;
-        ctx.fillText('Perfect for: ' + designOptions.niche, centerX, height * 0.88);
+        ctx.font = 'bold 40px Arial';
+        ctx.fillText('FEATURE 1', width * 0.275, boxY + 75);
+        ctx.fillText('FEATURE 2', width * 0.725, boxY + 75);
         
       } else if (selectedType === 'thumbnail') {
-        // YouTube Thumbnail
-        const centerX = width / 2;
-        const centerY = height / 2;
-        
-        // Large attention-grabbing text
+        // Big text
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 8;
-        ctx.font = `bold ${width * 0.1}px Impact, Arial, sans-serif`;
+        ctx.lineWidth = 10;
+        ctx.font = 'bold 120px Arial';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        const text = prompt.slice(0, 15).toUpperCase() || 'WATCH NOW';
+        ctx.strokeText(text, centerX, centerY);
+        ctx.fillText(text, centerX, centerY);
         
-        const thumbText = prompt.split(' ').slice(0, 2).join(' ').toUpperCase() || 'CLICK HERE';
-        
-        ctx.strokeText(thumbText, centerX, centerY - height * 0.1);
-        ctx.fillText(thumbText, centerX, centerY - height * 0.1);
-        
-        // Subtext with background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(width * 0.2, centerY + height * 0.1, width * 0.6, height * 0.15);
-        
-        ctx.fillStyle = '#fbbf24';
-        ctx.font = `bold ${width * 0.045}px Arial, sans-serif`;
-        ctx.fillText('Watch Now!', centerX, centerY + height * 0.175);
-        
-        // Arrow or play button
+        // Arrow
         ctx.fillStyle = '#ef4444';
         ctx.beginPath();
         ctx.moveTo(width * 0.85, centerY);
-        ctx.lineTo(width * 0.85 + 60, centerY - 50);
-        ctx.lineTo(width * 0.85 + 60, centerY + 50);
+        ctx.lineTo(width * 0.85 + 80, centerY - 60);
+        ctx.lineTo(width * 0.85 + 80, centerY + 60);
         ctx.closePath();
+        ctx.fill();
+        
+      } else if (selectedType === 'social') {
+        // Title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 70px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 10;
+        ctx.fillText(prompt.slice(0, 25).toUpperCase() || 'SOCIAL POST', centerX, centerY - 100);
+        ctx.shadowBlur = 0;
+        
+        // Icon/Shape
+        ctx.fillStyle = '#8b5cf6';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY + 100, 100, 0, Math.PI * 2);
         ctx.fill();
       }
       
@@ -365,13 +217,13 @@ const AIDesignStudio = () => {
         prompt: prompt,
         options: designOptions,
         imageUrl: imageUrl,
-        description: `Professional ${selectedType} design created with ${designOptions.style} style and ${designOptions.theme} theme.`,
+        description: `Professional ${selectedType} design with ${designOptions.theme} theme`,
         timestamp: Date.now()
       });
       
     } catch (err) {
-      console.error('Generation failed:', err);
-      setError('Failed to generate design. Please try again.');
+      console.error('Generation error:', err);
+      setError('Failed to generate design: ' + err.message);
     } finally {
       setIsGenerating(false);
     }
@@ -393,7 +245,7 @@ const AIDesignStudio = () => {
   };
 
   const handleEditDesign = () => {
-    if (editRequest.trim()) {
+    if (editRequest.trim() && generatedDesign) {
       generateDesign(generatedDesign.prompt + ' ' + editRequest);
       setEditRequest('');
     }
@@ -426,6 +278,7 @@ const AIDesignStudio = () => {
     setDesignPrompt('');
     setGuidedStep(1);
     setGuidedAnswers({ purpose: '', audience: '', mood: '', colors: '', text: '' });
+    setError('');
   };
 
   const handleLogout = () => {
@@ -478,7 +331,7 @@ const AIDesignStudio = () => {
 
             <div className="text-center pt-4">
               <p className="text-sm text-gray-600">
-                Don't have a license? <a href="#" className="text-blue-600 hover:underline">Purchase Now</a>
+                Demo: Type any text as license key (more than 5 characters)
               </p>
             </div>
           </div>
@@ -562,6 +415,12 @@ const AIDesignStudio = () => {
                 ← Back
               </button>
 
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
               <div className="bg-white rounded-xl p-6 space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   <Settings className="w-5 h-5" />
@@ -602,7 +461,7 @@ const AIDesignStudio = () => {
                           type="text"
                           value={guidedAnswers.purpose}
                           onChange={(e) => setGuidedAnswers({...guidedAnswers, purpose: e.target.value})}
-                          placeholder="e.g., Brand logo for a coffee shop"
+                          placeholder="e.g., AI Prompt Tool"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         />
                       </div>
@@ -617,7 +476,7 @@ const AIDesignStudio = () => {
                           type="text"
                           value={guidedAnswers.audience}
                           onChange={(e) => setGuidedAnswers({...guidedAnswers, audience: e.target.value})}
-                          placeholder="e.g., Young professionals, 25-35 years old"
+                          placeholder="e.g., Content creators, entrepreneurs"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         />
                       </div>
@@ -632,7 +491,7 @@ const AIDesignStudio = () => {
                           type="text"
                           value={guidedAnswers.mood}
                           onChange={(e) => setGuidedAnswers({...guidedAnswers, mood: e.target.value})}
-                          placeholder="e.g., Energetic, professional, friendly"
+                          placeholder="e.g., Professional, futuristic"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         />
                       </div>
@@ -641,13 +500,13 @@ const AIDesignStudio = () => {
                     {guidedStep === 4 && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Any specific colors or color preferences?
+                          Any specific colors?
                         </label>
                         <input
                           type="text"
                           value={guidedAnswers.colors}
                           onChange={(e) => setGuidedAnswers({...guidedAnswers, colors: e.target.value})}
-                          placeholder="e.g., Blue and orange, warm tones"
+                          placeholder="e.g., Blue, purple, space theme"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         />
                       </div>
@@ -656,7 +515,7 @@ const AIDesignStudio = () => {
                     {guidedStep === 5 && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Any text or message to include?
+                          Text to include?
                         </label>
                         <input
                           type="text"
@@ -669,17 +528,6 @@ const AIDesignStudio = () => {
                     )}
                   </div>
                 )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Visual Style</label>
-                  <select value={designOptions.style} onChange={(e) => setDesignOptions({...designOptions, style: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="realistic">Realistic</option>
-                    <option value="futuristic">Futuristic</option>
-                    <option value="cartoon">Cartoon</option>
-                    <option value="minimalist">Minimalist</option>
-                    <option value="3d">3D Render</option>
-                  </select>
-                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Size/Format</label>
@@ -697,17 +545,6 @@ const AIDesignStudio = () => {
                     <option value="vibrant">Vibrant (Space Theme)</option>
                     <option value="pastel">Pastel</option>
                     <option value="dark">Dark Mode</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Niche/Industry</label>
-                  <select value={designOptions.niche} onChange={(e) => setDesignOptions({...designOptions, niche: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="tech">Technology</option>
-                    <option value="food">Food & Beverage</option>
-                    <option value="fashion">Fashion</option>
-                    <option value="corporate">Corporate</option>
-                    <option value="creative">Creative Arts</option>
                   </select>
                 </div>
 
@@ -764,19 +601,27 @@ const AIDesignStudio = () => {
                 {!generatedDesign ? (
                   <div className="flex items-center justify-center h-96 border-2 border-dashed border-gray-300 rounded-lg">
                     <div className="text-center">
-                      <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">
-                        {isGenerating ? 'Generating your design...' : 'Configure your design and click generate'}
-                      </p>
+                      {isGenerating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                          <p className="text-gray-600">Generating your design...</p>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600">Configure your design and click generate</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100">
                       <img 
                         src={generatedDesign.imageUrl} 
                         alt="Generated design" 
                         className="w-full h-auto"
+                        style={{ maxHeight: '600px', objectFit: 'contain' }}
                       />
                     </div>
 
@@ -790,9 +635,9 @@ const AIDesignStudio = () => {
                           type="text"
                           value={editRequest}
                           onChange={(e) => setEditRequest(e.target.value)}
-                          placeholder="e.g., Make the colors brighter, change text..."
+                          placeholder="e.g., Make text bigger, change colors..."
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          onKeyPress={(e) => e.key === 'Enter' && handleEditDesign()}
+                          onKeyPress={(e) => e.key === 'Enter' && !isGenerating && handleEditDesign()}
                         />
                         <button
                           onClick={handleEditDesign}
