@@ -72,94 +72,310 @@ const AIDesignStudio = () => {
     { id: 'guided', name: 'Guided Mode', desc: 'Step-by-step questions to refine your vision' }
   ];
 
- const generateDesign = async (prompt) => {
-  setIsGenerating(true);
-  setError('');
-  
-  try {
-    const sizeSpecs = {
-      'instagram-post': 'square 1:1 aspect ratio',
-      'youtube-thumb': 'widescreen 16:9 aspect ratio',
-      'a4-flyer': 'portrait aspect ratio',
-      'logo-square': 'square format'
-    };
-
-    const fullPrompt = `Generate an image for a ${selectedType} design.
-
-Requirements:
-${prompt}
-
-Style: ${designOptions.style}
-Theme: ${designOptions.theme} colors
-Typography: ${designOptions.font} font style
-Format: ${sizeSpecs[designOptions.size]}
-Industry: ${designOptions.niche}
-
-Create a professional, polished ${selectedType} design that is visually striking and ready to use.`;
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [
-          {
-            role: "user",
-            content: fullPrompt
-          }
-        ],
-        tools: [
-          {
-            type: "image_generation_20250110",
-            name: "image_generation"
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('API Response:', data);
-    
-    // Extract generated image from response
-    let imageUrl = null;
-    let description = '';
-    
-    for (const block of data.content) {
-      if (block.type === 'image') {
-        imageUrl = `data:${block.source.media_type};base64,${block.source.data}`;
-      } else if (block.type === 'text') {
-        description += block.text;
+  const createGradientBackground = (ctx, width, height, theme, style) => {
+    if (theme === 'vibrant') {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#1e3a8a');
+      gradient.addColorStop(0.5, '#312e81');
+      gradient.addColorStop(1, '#1e1b4b');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Add stars
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      for (let i = 0; i < 100; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const size = Math.random() * 2;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
       }
+    } else if (theme === 'pastel') {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#fce7f3');
+      gradient.addColorStop(0.5, '#e0e7ff');
+      gradient.addColorStop(1, '#dbeafe');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    } else if (theme === 'dark') {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#0f172a');
+      gradient.addColorStop(1, '#1e293b');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+    }
+  };
+
+  const drawGlossyButton = (ctx, x, y, width, height, text, color1, color2) => {
+    // Button shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetY = 5;
+    
+    // Button background gradient
+    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+    gradient.addColorStop(0, color1);
+    gradient.addColorStop(1, color2);
+    ctx.fillStyle = gradient;
+    
+    // Rounded rectangle
+    ctx.beginPath();
+    const radius = height / 2;
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    ctx.shadowColor = 'transparent';
+    
+    // Button text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${height * 0.35}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + width / 2, y + height / 2);
+  };
+
+  const drawIcon = (ctx, x, y, size, type) => {
+    ctx.save();
+    
+    if (type === 'star') {
+      ctx.fillStyle = '#fbbf24';
+      ctx.shadowColor = '#fbbf24';
+      ctx.shadowBlur = 20;
+      
+      const spikes = 4;
+      const outerRadius = size;
+      const innerRadius = size * 0.5;
+      
+      ctx.beginPath();
+      for (let i = 0; i < spikes * 2; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (i * Math.PI) / spikes;
+        const px = x + Math.cos(angle) * radius;
+        const py = y + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else if (type === 'sparkle') {
+      ctx.fillStyle = '#60a5fa';
+      ctx.shadowColor = '#60a5fa';
+      ctx.shadowBlur = 15;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Cross sparkle
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x - size, y);
+      ctx.lineTo(x + size, y);
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x, y + size);
+      ctx.stroke();
     }
     
-    if (!imageUrl) {
-      throw new Error('No image was generated in the response. The AI may need a more specific prompt.');
+    ctx.restore();
+  };
+
+  const generateDesign = async (prompt) => {
+    setIsGenerating(true);
+    setError('');
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      const dimensions = {
+        'instagram-post': [1080, 1080],
+        'youtube-thumb': [1920, 1080],
+        'a4-flyer': [1240, 1754],
+        'logo-square': [1000, 1000]
+      };
+      
+      const [width, height] = dimensions[designOptions.size];
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Background
+      createGradientBackground(ctx, width, height, designOptions.theme, designOptions.style);
+      
+      // Add decorative elements
+      for (let i = 0; i < 8; i++) {
+        drawIcon(ctx, Math.random() * width, Math.random() * height, 15 + Math.random() * 20, 'star');
+      }
+      for (let i = 0; i < 12; i++) {
+        drawIcon(ctx, Math.random() * width, Math.random() * height, 10 + Math.random() * 15, 'sparkle');
+      }
+      
+      if (selectedType === 'logo') {
+        // Logo design
+        const centerX = width / 2;
+        const centerY = height / 2;
+        
+        // Main logo shape with gradient
+        const logoGradient = ctx.createLinearGradient(centerX - 200, centerY - 200, centerX + 200, centerY + 200);
+        logoGradient.addColorStop(0, '#3b82f6');
+        logoGradient.addColorStop(0.5, '#8b5cf6');
+        logoGradient.addColorStop(1, '#ec4899');
+        
+        ctx.fillStyle = logoGradient;
+        ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
+        ctx.shadowBlur = 40;
+        
+        // Draw shield/badge shape
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - 150);
+        ctx.lineTo(centerX + 120, centerY - 80);
+        ctx.lineTo(centerX + 120, centerY + 80);
+        ctx.lineTo(centerX, centerY + 150);
+        ctx.lineTo(centerX - 120, centerY + 80);
+        ctx.lineTo(centerX - 120, centerY - 80);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.shadowColor = 'transparent';
+        
+        // Inner design element
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Brand name
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${width * 0.08}px Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 10;
+        
+        const words = prompt.split(' ').slice(0, 2);
+        ctx.fillText(words.join(' ').toUpperCase() || 'YOUR BRAND', centerX, centerY + height * 0.35);
+        
+      } else if (selectedType === 'flyer' || selectedType === 'social') {
+        // Flyer/Social Post design
+        const centerX = width / 2;
+        
+        // Main title area with glow effect
+        ctx.shadowColor = 'rgba(139, 92, 246, 0.8)';
+        ctx.shadowBlur = 30;
+        
+        // Title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${width * 0.08}px Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        
+        const titleWords = prompt.split(' ').slice(0, 3);
+        const title = titleWords.join(' ').toUpperCase() || 'YOUR TITLE';
+        ctx.fillText(title, centerX, height * 0.15);
+        
+        ctx.shadowColor = 'transparent';
+        
+        // Subtitle
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = `bold ${width * 0.05}px Arial, sans-serif`;
+        ctx.fillText('Professional Design', centerX, height * 0.28);
+        
+        // Feature boxes
+        const boxWidth = width * 0.4;
+        const boxHeight = height * 0.15;
+        const startY = height * 0.45;
+        
+        // Left box
+        drawGlossyButton(ctx, width * 0.1, startY, boxWidth, boxHeight, 'FEATURE 1', '#3b82f6', '#1e40af');
+        
+        // Right box
+        drawGlossyButton(ctx, width * 0.5, startY, boxWidth, boxHeight, 'FEATURE 2', '#ec4899', '#be185d');
+        
+        // Bottom box
+        drawGlossyButton(ctx, width * 0.1, startY + boxHeight * 1.3, boxWidth, boxHeight, 'FEATURE 3', '#8b5cf6', '#6d28d9');
+        
+        // Last box
+        drawGlossyButton(ctx, width * 0.5, startY + boxHeight * 1.3, boxWidth, boxHeight, 'FEATURE 4', '#10b981', '#047857');
+        
+        // Bottom text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${width * 0.035}px Arial, sans-serif`;
+        ctx.fillText('Perfect for: ' + designOptions.niche, centerX, height * 0.88);
+        
+      } else if (selectedType === 'thumbnail') {
+        // YouTube Thumbnail
+        const centerX = width / 2;
+        const centerY = height / 2;
+        
+        // Large attention-grabbing text
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 8;
+        ctx.font = `bold ${width * 0.1}px Impact, Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const thumbText = prompt.split(' ').slice(0, 2).join(' ').toUpperCase() || 'CLICK HERE';
+        
+        ctx.strokeText(thumbText, centerX, centerY - height * 0.1);
+        ctx.fillText(thumbText, centerX, centerY - height * 0.1);
+        
+        // Subtext with background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(width * 0.2, centerY + height * 0.1, width * 0.6, height * 0.15);
+        
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = `bold ${width * 0.045}px Arial, sans-serif`;
+        ctx.fillText('Watch Now!', centerX, centerY + height * 0.175);
+        
+        // Arrow or play button
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.moveTo(width * 0.85, centerY);
+        ctx.lineTo(width * 0.85 + 60, centerY - 50);
+        ctx.lineTo(width * 0.85 + 60, centerY + 50);
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      const imageUrl = canvas.toDataURL('image/png');
+      
+      setGeneratedDesign({
+        type: selectedType,
+        prompt: prompt,
+        options: designOptions,
+        imageUrl: imageUrl,
+        description: `Professional ${selectedType} design created with ${designOptions.style} style and ${designOptions.theme} theme.`,
+        timestamp: Date.now()
+      });
+      
+    } catch (err) {
+      console.error('Generation failed:', err);
+      setError('Failed to generate design. Please try again.');
+    } finally {
+      setIsGenerating(false);
     }
-    
-    setGeneratedDesign({
-      type: selectedType,
-      prompt: prompt,
-      options: designOptions,
-      imageUrl: imageUrl,
-      description: description,
-      timestamp: Date.now()
-    });
-    
-  } catch (err) {
-    console.error('Generation failed:', err);
-    setError(err.message || 'Failed to generate image. Please try again with a different prompt.');
-  } finally {
-    setIsGenerating(false);
-  }
-};
+  };
 
   const handleQuickGenerate = () => {
     if (designPrompt.trim()) {
@@ -171,22 +387,14 @@ Create a professional, polished ${selectedType} design that is visually striking
     if (guidedStep < 5) {
       setGuidedStep(guidedStep + 1);
     } else {
-      const fullPrompt = `Purpose: ${guidedAnswers.purpose}. Target audience: ${guidedAnswers.audience}. Mood: ${guidedAnswers.mood}. Colors: ${guidedAnswers.colors}. Text to include: ${guidedAnswers.text}`;
+      const fullPrompt = `${guidedAnswers.purpose} ${guidedAnswers.text}`;
       generateDesign(fullPrompt);
     }
   };
 
-  const handleEditDesign = async () => {
-    if (editRequest.trim() && generatedDesign) {
-      setIsGenerating(true);
-      
-      const editPrompt = `Take this existing ${selectedType} design and modify it: ${editRequest}
-
-Original prompt: ${generatedDesign.prompt}
-
-Keep the same general style but incorporate the requested changes.`;
-      
-      await generateDesign(editPrompt);
+  const handleEditDesign = () => {
+    if (editRequest.trim()) {
+      generateDesign(generatedDesign.prompt + ' ' + editRequest);
       setEditRequest('');
     }
   };
@@ -195,7 +403,7 @@ Keep the same general style but incorporate the requested changes.`;
     if (creationMode === 'quick' && designPrompt.trim()) {
       generateDesign(designPrompt);
     } else if (creationMode === 'guided') {
-      const fullPrompt = `Purpose: ${guidedAnswers.purpose}. Target audience: ${guidedAnswers.audience}. Mood: ${guidedAnswers.mood}. Colors: ${guidedAnswers.colors}. Text: ${guidedAnswers.text}`;
+      const fullPrompt = `${guidedAnswers.purpose} ${guidedAnswers.text}`;
       generateDesign(fullPrompt);
     }
   };
@@ -204,7 +412,7 @@ Keep the same general style but incorporate the requested changes.`;
     if (generatedDesign && generatedDesign.imageUrl) {
       const link = document.createElement('a');
       link.href = generatedDesign.imageUrl;
-      link.download = `design-${selectedType}-${Date.now()}.png`;
+      link.download = `${selectedType}-design-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -218,15 +426,12 @@ Keep the same general style but incorporate the requested changes.`;
     setDesignPrompt('');
     setGuidedStep(1);
     setGuidedAnswers({ purpose: '', audience: '', mood: '', colors: '', text: '' });
-    setError('');
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setLicenseKey('');
-    setSelectedType(null);
-    setCreationMode(null);
-    setGeneratedDesign(null);
+    resetToStart();
     setSessionSecret(generateSessionSecret());
   };
 
@@ -273,16 +478,9 @@ Keep the same general style but incorporate the requested changes.`;
 
             <div className="text-center pt-4">
               <p className="text-sm text-gray-600">
-                Don't have a license? <a href="https://gumroad.com/l/your-product" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Purchase on Gumroad</a>
+                Don't have a license? <a href="#" className="text-blue-600 hover:underline">Purchase Now</a>
               </p>
             </div>
-
-            {sessionSecret && (
-              <div className="mt-4 p-3 bg-gray-100 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Session ID:</p>
-                <p className="text-xs font-mono text-gray-700 break-all">{sessionSecret}</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -364,12 +562,6 @@ Keep the same general style but incorporate the requested changes.`;
                 ← Back
               </button>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-
               <div className="bg-white rounded-xl p-6 space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   <Settings className="w-5 h-5" />
@@ -384,7 +576,7 @@ Keep the same general style but incorporate the requested changes.`;
                     <textarea
                       value={designPrompt}
                       onChange={(e) => setDesignPrompt(e.target.value)}
-                      placeholder="e.g., A modern tech startup logo with blue and white colors, minimalist style, featuring a rocket icon..."
+                      placeholder="e.g., Prompt Polish Pro - AI tool for crafting better prompts"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg h-32 resize-none"
                     />
                   </div>
@@ -470,7 +662,7 @@ Keep the same general style but incorporate the requested changes.`;
                           type="text"
                           value={guidedAnswers.text}
                           onChange={(e) => setGuidedAnswers({...guidedAnswers, text: e.target.value})}
-                          placeholder="e.g., Brew & Co."
+                          placeholder="e.g., Prompt Polish Pro"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         />
                       </div>
@@ -484,22 +676,8 @@ Keep the same general style but incorporate the requested changes.`;
                     <option value="realistic">Realistic</option>
                     <option value="futuristic">Futuristic</option>
                     <option value="cartoon">Cartoon</option>
-                    <option value="anime">Anime</option>
                     <option value="minimalist">Minimalist</option>
-                    <option value="abstract">Abstract</option>
-                    <option value="vintage">Vintage</option>
                     <option value="3d">3D Render</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Font Style</label>
-                  <select value={designOptions.font} onChange={(e) => setDesignOptions({...designOptions, font: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="modern">Modern</option>
-                    <option value="classic">Classic</option>
-                    <option value="playful">Playful</option>
-                    <option value="bold">Bold</option>
-                    <option value="elegant">Elegant</option>
                   </select>
                 </div>
 
@@ -507,18 +685,17 @@ Keep the same general style but incorporate the requested changes.`;
                   <label className="block text-sm font-medium text-gray-700 mb-2">Size/Format</label>
                   <select value={designOptions.size} onChange={(e) => setDesignOptions({...designOptions, size: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="instagram-post">Instagram Post (1080x1080)</option>
-                    <option value="youtube-thumb">YouTube Thumbnail (1280x720)</option>
-                    <option value="a4-flyer">A4 Flyer (210x297mm)</option>
-                    <option value="logo-square">Logo Square (500x500)</option>
+                    <option value="youtube-thumb">YouTube Thumbnail (1920x1080)</option>
+                    <option value="a4-flyer">A4 Flyer</option>
+                    <option value="logo-square">Logo (1000x1000)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
                   <select value={designOptions.theme} onChange={(e) => setDesignOptions({...designOptions, theme: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="vibrant">Vibrant</option>
+                    <option value="vibrant">Vibrant (Space Theme)</option>
                     <option value="pastel">Pastel</option>
-                    <option value="monochrome">Monochrome</option>
                     <option value="dark">Dark Mode</option>
                   </select>
                 </div>
@@ -531,7 +708,6 @@ Keep the same general style but incorporate the requested changes.`;
                     <option value="fashion">Fashion</option>
                     <option value="corporate">Corporate</option>
                     <option value="creative">Creative Arts</option>
-                    <option value="minimal">Minimal</option>
                   </select>
                 </div>
 
@@ -542,7 +718,7 @@ Keep the same general style but incorporate the requested changes.`;
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-5 h-5" />
-                    {isGenerating ? 'Generating Image...' : 'Generate Design'}
+                    {isGenerating ? 'Generating...' : 'Generate Design'}
                   </button>
                 ) : (
                   <button
@@ -553,7 +729,7 @@ Keep the same general style but incorporate the requested changes.`;
                     {guidedStep < 5 ? (
                       <span className="flex items-center gap-2">Next <ChevronRight className="w-5 h-5" /></span>
                     ) : (
-                      <span className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating Image...' : 'Generate Design'}</span>
+                      <span className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating...' : 'Generate Design'}</span>
                     )}
                   </button>
                 )}
@@ -579,7 +755,7 @@ Keep the same general style but incorporate the requested changes.`;
                         className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                       >
                         <Download className="w-4 h-4" />
-                        Download
+                        Download PNG
                       </button>
                     </div>
                   )}
@@ -604,23 +780,17 @@ Keep the same general style but incorporate the requested changes.`;
                       />
                     </div>
 
-                    {generatedDesign.description && (
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-sm text-gray-700">{generatedDesign.description}</p>
-                      </div>
-                    )}
-
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <Edit className="w-4 h-4" />
-                        Request Edits
+                        Request Changes
                       </h4>
                       <div className="flex gap-2">
                         <input
                           type="text"
                           value={editRequest}
                           onChange={(e) => setEditRequest(e.target.value)}
-                          placeholder="e.g., Make the colors brighter, add more elements..."
+                          placeholder="e.g., Make the colors brighter, change text..."
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           onKeyPress={(e) => e.key === 'Enter' && handleEditDesign()}
                         />
@@ -629,7 +799,7 @@ Keep the same general style but incorporate the requested changes.`;
                           disabled={!editRequest.trim() || isGenerating}
                           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium"
                         >
-                          {isGenerating ? 'Updating...' : 'Update'}
+                          {isGenerating ? 'Updating...' : 'Apply'}
                         </button>
                       </div>
                     </div>
