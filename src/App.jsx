@@ -5,7 +5,7 @@ const generateSessionSecret = () => {
   return 'session_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
-const AIDesignStudio = () => {
+function App() {
   const [sessionSecret, setSessionSecret] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
@@ -29,11 +29,8 @@ const AIDesignStudio = () => {
   });
   
   const [designOptions, setDesignOptions] = useState({
-    font: 'modern',
     size: 'instagram-post',
-    theme: 'vibrant',
-    style: 'realistic',
-    niche: 'tech'
+    theme: 'vibrant'
   });
 
   useEffect(() => {
@@ -46,15 +43,15 @@ const AIDesignStudio = () => {
     setError('');
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (licenseKey.length > 5) {
         setIsAuthenticated(true);
       } else {
-        setError('Invalid license key. Please check and try again.');
+        setError('License key must be at least 6 characters');
       }
     } catch (err) {
-      setError('Failed to validate license. Please try again.');
+      setError('Validation failed');
     } finally {
       setIsValidating(false);
     }
@@ -69,7 +66,7 @@ const AIDesignStudio = () => {
 
   const creationModes = [
     { id: 'quick', name: 'Quick Mode', desc: 'Describe what you want in one go' },
-    { id: 'guided', name: 'Guided Mode', desc: 'Step-by-step questions to refine your vision' }
+    { id: 'guided', name: 'Guided Mode', desc: 'Step-by-step questions' }
   ];
 
   const generateDesign = async (prompt) => {
@@ -82,7 +79,6 @@ const AIDesignStudio = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      // Set dimensions
       const dimensions = {
         'instagram-post': [1080, 1080],
         'youtube-thumb': [1920, 1080],
@@ -94,7 +90,7 @@ const AIDesignStudio = () => {
       canvas.width = width;
       canvas.height = height;
       
-      // Background gradient
+      // Background
       const gradient = ctx.createLinearGradient(0, 0, width, height);
       if (designOptions.theme === 'vibrant') {
         gradient.addColorStop(0, '#1e3a8a');
@@ -103,84 +99,69 @@ const AIDesignStudio = () => {
       } else if (designOptions.theme === 'pastel') {
         gradient.addColorStop(0, '#fce7f3');
         gradient.addColorStop(1, '#dbeafe');
-      } else if (designOptions.theme === 'dark') {
+      } else {
         gradient.addColorStop(0, '#0f172a');
         gradient.addColorStop(1, '#1e293b');
-      } else {
-        gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(1, '#f3f4f6');
       }
       
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
       
-      // Add stars for vibrant theme
+      // Stars for vibrant theme
       if (designOptions.theme === 'vibrant') {
-        ctx.fillStyle = '#ffffff';
-        for (let i = 0; i < 50; i++) {
-          const x = Math.random() * width;
-          const y = Math.random() * height;
-          const size = Math.random() * 2;
-          ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fill();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        for (let i = 0; i < 100; i++) {
+          ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
         }
       }
       
       const centerX = width / 2;
       const centerY = height / 2;
       
-      // Design type specific rendering
+      // Main content based on type
       if (selectedType === 'logo') {
-        // Logo circle
+        // Circle logo
         ctx.fillStyle = '#3b82f6';
-        ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
-        ctx.shadowBlur = 30;
         ctx.beginPath();
         ctx.arc(centerX, centerY - 100, 150, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
         
         // Text
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 80px Arial';
+        ctx.font = `bold ${width * 0.08}px Arial`;
         ctx.textAlign = 'center';
-        ctx.fillText(prompt.slice(0, 15).toUpperCase() || 'LOGO', centerX, centerY + 150);
+        ctx.fillText(prompt.substring(0, 20).toUpperCase() || 'LOGO', centerX, centerY + 150);
         
       } else if (selectedType === 'flyer') {
         // Title
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 90px Arial';
+        ctx.font = `bold ${width * 0.08}px Arial`;
         ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 10;
-        ctx.fillText(prompt.slice(0, 20).toUpperCase() || 'TITLE', centerX, height * 0.2);
-        ctx.shadowBlur = 0;
+        ctx.fillText(prompt.substring(0, 20).toUpperCase() || 'TITLE', centerX, height * 0.2);
         
         // Subtitle
         ctx.fillStyle = '#fbbf24';
-        ctx.font = 'bold 50px Arial';
+        ctx.font = `bold ${width * 0.04}px Arial`;
         ctx.fillText('Professional Design', centerX, height * 0.3);
         
         // Feature boxes
-        const boxY = height * 0.5;
         ctx.fillStyle = '#3b82f6';
-        ctx.fillRect(width * 0.1, boxY, width * 0.35, 120);
-        ctx.fillRect(width * 0.55, boxY, width * 0.35, 120);
+        ctx.fillRect(width * 0.1, height * 0.5, width * 0.35, height * 0.12);
+        ctx.fillRect(width * 0.55, height * 0.5, width * 0.35, height * 0.12);
         
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 40px Arial';
-        ctx.fillText('FEATURE 1', width * 0.275, boxY + 75);
-        ctx.fillText('FEATURE 2', width * 0.725, boxY + 75);
+        ctx.font = `bold ${width * 0.035}px Arial`;
+        ctx.fillText('FEATURE 1', width * 0.275, height * 0.56);
+        ctx.fillText('FEATURE 2', width * 0.725, height * 0.56);
         
       } else if (selectedType === 'thumbnail') {
-        // Big text
+        // Big bold text
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 10;
-        ctx.font = 'bold 120px Arial';
+        ctx.lineWidth = 8;
+        ctx.font = `bold ${width * 0.1}px Impact, Arial`;
         ctx.textAlign = 'center';
-        const text = prompt.slice(0, 15).toUpperCase() || 'WATCH NOW';
+        const text = prompt.substring(0, 15).toUpperCase() || 'WATCH';
         ctx.strokeText(text, centerX, centerY);
         ctx.fillText(text, centerX, centerY);
         
@@ -188,22 +169,19 @@ const AIDesignStudio = () => {
         ctx.fillStyle = '#ef4444';
         ctx.beginPath();
         ctx.moveTo(width * 0.85, centerY);
-        ctx.lineTo(width * 0.85 + 80, centerY - 60);
-        ctx.lineTo(width * 0.85 + 80, centerY + 60);
+        ctx.lineTo(width * 0.92, centerY - 50);
+        ctx.lineTo(width * 0.92, centerY + 50);
         ctx.closePath();
         ctx.fill();
         
-      } else if (selectedType === 'social') {
-        // Title
+      } else {
+        // Social post
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 70px Arial';
+        ctx.font = `bold ${width * 0.07}px Arial`;
         ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 10;
-        ctx.fillText(prompt.slice(0, 25).toUpperCase() || 'SOCIAL POST', centerX, centerY - 100);
-        ctx.shadowBlur = 0;
+        ctx.fillText(prompt.substring(0, 25).toUpperCase() || 'POST', centerX, centerY - 100);
         
-        // Icon/Shape
+        // Icon
         ctx.fillStyle = '#8b5cf6';
         ctx.beginPath();
         ctx.arc(centerX, centerY + 100, 100, 0, Math.PI * 2);
@@ -217,13 +195,12 @@ const AIDesignStudio = () => {
         prompt: prompt,
         options: designOptions,
         imageUrl: imageUrl,
-        description: `Professional ${selectedType} design with ${designOptions.theme} theme`,
+        description: `${selectedType} design`,
         timestamp: Date.now()
       });
       
     } catch (err) {
-      console.error('Generation error:', err);
-      setError('Failed to generate design: ' + err.message);
+      setError('Failed to generate: ' + err.message);
     } finally {
       setIsGenerating(false);
     }
@@ -239,15 +216,10 @@ const AIDesignStudio = () => {
     if (guidedStep < 5) {
       setGuidedStep(guidedStep + 1);
     } else {
-      const fullPrompt = `${guidedAnswers.purpose} ${guidedAnswers.text}`;
-      generateDesign(fullPrompt);
-    }
-  };
-
-  const handleEditDesign = () => {
-    if (editRequest.trim() && generatedDesign) {
-      generateDesign(generatedDesign.prompt + ' ' + editRequest);
-      setEditRequest('');
+      const fullPrompt = `${guidedAnswers.purpose} ${guidedAnswers.text}`.trim();
+      if (fullPrompt) {
+        generateDesign(fullPrompt);
+      }
     }
   };
 
@@ -255,16 +227,18 @@ const AIDesignStudio = () => {
     if (creationMode === 'quick' && designPrompt.trim()) {
       generateDesign(designPrompt);
     } else if (creationMode === 'guided') {
-      const fullPrompt = `${guidedAnswers.purpose} ${guidedAnswers.text}`;
-      generateDesign(fullPrompt);
+      const fullPrompt = `${guidedAnswers.purpose} ${guidedAnswers.text}`.trim();
+      if (fullPrompt) {
+        generateDesign(fullPrompt);
+      }
     }
   };
 
   const handleDownload = () => {
-    if (generatedDesign && generatedDesign.imageUrl) {
+    if (generatedDesign?.imageUrl) {
       const link = document.createElement('a');
       link.href = generatedDesign.imageUrl;
-      link.download = `${selectedType}-design-${Date.now()}.png`;
+      link.download = `${selectedType}-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -281,13 +255,6 @@ const AIDesignStudio = () => {
     setError('');
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setLicenseKey('');
-    resetToStart();
-    setSessionSecret(generateSessionSecret());
-  };
-
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center p-4">
@@ -297,23 +264,18 @@ const AIDesignStudio = () => {
               <Key className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Design Studio</h1>
-            <p className="text-gray-600">Enter your license key to access the design tools</p>
+            <p className="text-gray-600">Enter license key (type anything 6+ chars)</p>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                License Key
-              </label>
-              <input
-                type="text"
-                value={licenseKey}
-                onChange={(e) => setLicenseKey(e.target.value)}
-                placeholder="Enter your license key"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                onKeyPress={(e) => e.key === 'Enter' && validateLicense()}
-              />
-            </div>
+            <input
+              type="text"
+              value={licenseKey}
+              onChange={(e) => setLicenseKey(e.target.value)}
+              placeholder="Type anything..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              onKeyPress={(e) => e.key === 'Enter' && validateLicense()}
+            />
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -323,17 +285,11 @@ const AIDesignStudio = () => {
 
             <button
               onClick={validateLicense}
-              disabled={isValidating || !licenseKey}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              disabled={isValidating}
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50"
             >
-              {isValidating ? 'Validating...' : 'Activate License'}
+              {isValidating ? 'Validating...' : 'Activate'}
             </button>
-
-            <div className="text-center pt-4">
-              <p className="text-sm text-gray-600">
-                Demo: Type any text as license key (more than 5 characters)
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -350,16 +306,11 @@ const AIDesignStudio = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900">AI Design Studio</h1>
           </div>
-          <div className="flex items-center gap-4">
-            {selectedType && (
-              <button onClick={resetToStart} className="px-4 py-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
-                New Design
-              </button>
-            )}
-            <button onClick={handleLogout} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
-              Logout
+          {selectedType && (
+            <button onClick={resetToStart} className="px-4 py-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
+              New Design
             </button>
-          </div>
+          )}
         </div>
       </header>
 
@@ -388,10 +339,10 @@ const AIDesignStudio = () => {
 
         {selectedType && !creationMode && (
           <div>
-            <button onClick={() => setSelectedType(null)} className="text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-1">
+            <button onClick={() => setSelectedType(null)} className="text-purple-600 hover:text-purple-700 mb-4">
               ← Back
             </button>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">How would you like to create your {selectedType}?</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose creation mode</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {creationModes.map((mode) => (
                 <button
@@ -401,7 +352,6 @@ const AIDesignStudio = () => {
                 >
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{mode.name}</h3>
                   <p className="text-sm text-gray-600">{mode.desc}</p>
-                  <ChevronRight className="w-5 h-5 text-purple-600 mt-3" />
                 </button>
               ))}
             </div>
@@ -411,7 +361,7 @@ const AIDesignStudio = () => {
         {selectedType && creationMode && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-4">
-              <button onClick={() => setCreationMode(null)} className="text-purple-600 hover:text-purple-700 flex items-center gap-1">
+              <button onClick={() => setCreationMode(null)} className="text-purple-600 hover:text-purple-700">
                 ← Back
               </button>
 
@@ -422,10 +372,7 @@ const AIDesignStudio = () => {
               )}
 
               <div className="bg-white rounded-xl p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Design Settings
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900">Settings</h3>
 
                 {creationMode === 'quick' && (
                   <div>
@@ -435,116 +382,51 @@ const AIDesignStudio = () => {
                     <textarea
                       value={designPrompt}
                       onChange={(e) => setDesignPrompt(e.target.value)}
-                      placeholder="e.g., Prompt Polish Pro - AI tool for crafting better prompts"
+                      placeholder="e.g., Prompt Polish Pro"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg h-32 resize-none"
                     />
                   </div>
                 )}
 
-                {creationMode === 'guided' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      {[1, 2, 3, 4, 5].map(step => (
-                        <div 
-                          key={step} 
-                          className={step <= guidedStep ? 'h-2 flex-1 rounded bg-purple-600' : 'h-2 flex-1 rounded bg-gray-200'}
-                        ></div>
-                      ))}
-                    </div>
-
-                    {guidedStep === 1 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          What is the purpose of this design?
-                        </label>
-                        <input
-                          type="text"
-                          value={guidedAnswers.purpose}
-                          onChange={(e) => setGuidedAnswers({...guidedAnswers, purpose: e.target.value})}
-                          placeholder="e.g., AI Prompt Tool"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-                    )}
-
-                    {guidedStep === 2 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Who is your target audience?
-                        </label>
-                        <input
-                          type="text"
-                          value={guidedAnswers.audience}
-                          onChange={(e) => setGuidedAnswers({...guidedAnswers, audience: e.target.value})}
-                          placeholder="e.g., Content creators, entrepreneurs"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-                    )}
-
-                    {guidedStep === 3 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          What mood or feeling should it convey?
-                        </label>
-                        <input
-                          type="text"
-                          value={guidedAnswers.mood}
-                          onChange={(e) => setGuidedAnswers({...guidedAnswers, mood: e.target.value})}
-                          placeholder="e.g., Professional, futuristic"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-                    )}
-
-                    {guidedStep === 4 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Any specific colors?
-                        </label>
-                        <input
-                          type="text"
-                          value={guidedAnswers.colors}
-                          onChange={(e) => setGuidedAnswers({...guidedAnswers, colors: e.target.value})}
-                          placeholder="e.g., Blue, purple, space theme"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-                    )}
-
-                    {guidedStep === 5 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Text to include?
-                        </label>
-                        <input
-                          type="text"
-                          value={guidedAnswers.text}
-                          onChange={(e) => setGuidedAnswers({...guidedAnswers, text: e.target.value})}
-                          placeholder="e.g., Prompt Polish Pro"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-                    )}
+                {creationMode === 'guided' && guidedStep === 5 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Text to include?
+                    </label>
+                    <input
+                      type="text"
+                      value={guidedAnswers.text}
+                      onChange={(e) => setGuidedAnswers({...guidedAnswers, text: e.target.value})}
+                      placeholder="e.g., Your Brand"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Size/Format</label>
-                  <select value={designOptions.size} onChange={(e) => setDesignOptions({...designOptions, size: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="instagram-post">Instagram Post (1080x1080)</option>
-                    <option value="youtube-thumb">YouTube Thumbnail (1920x1080)</option>
-                    <option value="a4-flyer">A4 Flyer</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
+                  <select 
+                    value={designOptions.size} 
+                    onChange={(e) => setDesignOptions({...designOptions, size: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="instagram-post">Instagram (1080x1080)</option>
+                    <option value="youtube-thumb">YouTube (1920x1080)</option>
+                    <option value="a4-flyer">Flyer</option>
                     <option value="logo-square">Logo (1000x1000)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
-                  <select value={designOptions.theme} onChange={(e) => setDesignOptions({...designOptions, theme: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="vibrant">Vibrant (Space Theme)</option>
+                  <select 
+                    value={designOptions.theme} 
+                    onChange={(e) => setDesignOptions({...designOptions, theme: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="vibrant">Vibrant (Space)</option>
                     <option value="pastel">Pastel</option>
-                    <option value="dark">Dark Mode</option>
+                    <option value="dark">Dark</option>
                   </select>
                 </div>
 
@@ -552,21 +434,21 @@ const AIDesignStudio = () => {
                   <button
                     onClick={handleQuickGenerate}
                     disabled={isGenerating || !designPrompt.trim()}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-5 h-5" />
-                    {isGenerating ? 'Generating...' : 'Generate Design'}
+                    {isGenerating ? 'Generating...' : 'Generate'}
                   </button>
                 ) : (
                   <button
                     onClick={handleGuidedNext}
                     disabled={isGenerating}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
                   >
                     {guidedStep < 5 ? (
-                      <span className="flex items-center gap-2">Next <ChevronRight className="w-5 h-5" /></span>
+                      <span>Next <ChevronRight className="w-5 h-5 inline" /></span>
                     ) : (
-                      <span className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> {isGenerating ? 'Generating...' : 'Generate Design'}</span>
+                      <><Sparkles className="w-5 h-5" /> Generate</>
                     )}
                   </button>
                 )}
@@ -582,7 +464,7 @@ const AIDesignStudio = () => {
                       <button 
                         onClick={handleRegenerate}
                         disabled={isGenerating}
-                        className="flex items-center gap-2 px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
                       >
                         <RefreshCw className="w-4 h-4" />
                         Regenerate
@@ -592,7 +474,7 @@ const AIDesignStudio = () => {
                         className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                       >
                         <Download className="w-4 h-4" />
-                        Download PNG
+                        Download
                       </button>
                     </div>
                   )}
@@ -604,50 +486,23 @@ const AIDesignStudio = () => {
                       {isGenerating ? (
                         <>
                           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                          <p className="text-gray-600">Generating your design...</p>
+                          <p className="text-gray-600">Generating...</p>
                         </>
                       ) : (
                         <>
                           <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600">Configure your design and click generate</p>
+                          <p className="text-gray-600">Enter text and generate</p>
                         </>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100">
-                      <img 
-                        src={generatedDesign.imageUrl} 
-                        alt="Generated design" 
-                        className="w-full h-auto"
-                        style={{ maxHeight: '600px', objectFit: 'contain' }}
-                      />
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <Edit className="w-4 h-4" />
-                        Request Changes
-                      </h4>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={editRequest}
-                          onChange={(e) => setEditRequest(e.target.value)}
-                          placeholder="e.g., Make text bigger, change colors..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          onKeyPress={(e) => e.key === 'Enter' && !isGenerating && handleEditDesign()}
-                        />
-                        <button
-                          onClick={handleEditDesign}
-                          disabled={!editRequest.trim() || isGenerating}
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium"
-                        >
-                          {isGenerating ? 'Updating...' : 'Apply'}
-                        </button>
-                      </div>
-                    </div>
+                  <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
+                    <img 
+                      src={generatedDesign.imageUrl} 
+                      alt="Generated design" 
+                      className="w-full h-auto"
+                    />
                   </div>
                 )}
               </div>
@@ -657,6 +512,6 @@ const AIDesignStudio = () => {
       </div>
     </div>
   );
-};
+}
 
-export default AIDesignStudio;
+export default App;
